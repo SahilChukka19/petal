@@ -1,4 +1,5 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Same-origin: next.config.ts forwards /api/* to the backend.
+const BASE = "";
 
 export interface DailyUpdate {
   id: string;

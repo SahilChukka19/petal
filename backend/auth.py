@@ -26,6 +26,10 @@ def _secret() -> str:
 
 
 def load_users() -> dict[str, str]:
+    # Hosted deployments set AUTH_USERS (JSON of {username: bcrypt hash}); locally we use users.json.
+    env_users = os.getenv("AUTH_USERS")
+    if env_users:
+        return {k.strip().lower(): v for k, v in json.loads(env_users).items()}
     if not USERS_FILE.exists():
         return {}
     return json.loads(USERS_FILE.read_text(encoding="utf-8"))

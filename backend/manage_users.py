@@ -3,18 +3,24 @@
     python manage_users.py add <username>      # prompts for a password, stores a bcrypt hash
     python manage_users.py remove <username>
     python manage_users.py list
+    python manage_users.py export              # prints the AUTH_USERS value for hosted deployments
 """
 import getpass
+import json
 import sys
 
 from auth import MAX_USERS, hash_password, load_users, save_users
 
 
 def main() -> None:
-    if len(sys.argv) < 2 or sys.argv[1] not in ("add", "remove", "list"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("add", "remove", "list", "export"):
         sys.exit(__doc__)
     cmd = sys.argv[1]
     users = load_users()
+
+    if cmd == "export":
+        print(json.dumps(users, separators=(",", ":")))
+        return
 
     if cmd == "list":
         print("\n".join(users) or "(no users)")

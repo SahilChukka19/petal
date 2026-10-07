@@ -38,7 +38,7 @@ export default function VideoRecorder({ onRecorded }: VideoRecorderProps) {
   const startRecording = () => {
     if (!streamRef.current) return;
     chunksRef.current = [];
-    const mr = new MediaRecorder(streamRef.current, { mimeType: "video/webm" });
+    const mr = new MediaRecorder(streamRef.current, { mimeType: "video/webm", videoBitsPerSecond: 600_000, audioBitsPerSecond: 64_000 }) // keeps a 2-minute clip around 10MB;
     mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
     mr.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: "video/webm" });
