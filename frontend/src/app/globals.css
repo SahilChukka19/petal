@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── Design Tokens ─────────────────────────────── */
+@theme {
+  /* Font families */
+  --font-family-playfair: var(--font-playfair), Georgia, serif;
+  --font-family-jakarta: var(--font-jakarta), system-ui, sans-serif;
+
+  /* Brand colors */
+  --color-rose-50:  #FDF7F9;
+  --color-rose-100: #FBF0F4;
+  --color-rose-200: #F5D4E2;
+  --color-rose-300: #F0B8CF;
+  --color-rose-400: #E8478A;
+  --color-rose-500: #D63C7E;
+  --color-rose-600: #C02F6E;
+
+  --color-blush-50:  #FFF5F8;
+  --color-blush-100: #FFECF3;
+
+  --color-text-primary:   #2D1B2A;
+  --color-text-secondary: #7A4E6A;
+  --color-text-muted:     #B890A8;
+  --color-text-disabled:  #D4BAC9;
+
+  --color-surface:       #FFFFFF;
+  --color-surface-2:     #FDF7F9;
+  --color-border:        #F0DDE8;
+  --color-border-strong: #E8C8D9;
+
+  /* shadcn compat */
+  --color-background:           hsl(var(--background));
+  --color-foreground:           hsl(var(--foreground));
+  --color-card:                 hsl(var(--card));
+  --color-card-foreground:      hsl(var(--card-foreground));
+  --color-popover:              hsl(var(--popover));
+  --color-popover-foreground:   hsl(var(--popover-foreground));
+  --color-primary:              hsl(var(--primary));
+  --color-primary-foreground:   hsl(var(--primary-foreground));
+  --color-secondary:            hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted:                hsl(var(--muted));
+  --color-muted-foreground:     hsl(var(--muted-foreground));
+  --color-accent:               hsl(var(--accent));
+  --color-accent-foreground:    hsl(var(--accent-foreground));
+  --color-destructive:          hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border:               hsl(var(--border));
+  --color-input:                hsl(var(--input));
+  --color-ring:                 hsl(var(--ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/* ─── shadcn CSS Variables ──────────────────────── */
+@layer base {
+  :root {
+    --background:             338 60% 98%;
+    --foreground:             338 30% 14%;
+    --card:                   0 0% 100%;
+    --card-foreground:        338 30% 14%;
+    --popover:                0 0% 100%;
+    --popover-foreground:     338 30% 14%;
+    --primary:                338 78% 58%;
+    --primary-foreground:     0 0% 100%;
+    --secondary:              338 40% 94%;
+    --secondary-foreground:   338 30% 30%;
+    --muted:                  338 30% 95%;
+    --muted-foreground:       338 20% 50%;
+    --accent:                 338 40% 94%;
+    --accent-foreground:      338 30% 20%;
+    --destructive:            0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border:                 338 30% 90%;
+    --input:                  338 30% 90%;
+    --ring:                   338 78% 58%;
+    --radius:                 0.75rem;
+  }
+
+  * {
+    border-color: var(--color-border);
+    box-sizing: border-box;
+  }
+
+  html {
+    height: auto;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    overflow-y: auto;
+    background-color: #FDF7F9;
+    color: #2D1B2A;
+    font-family: var(--font-jakarta), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-playfair), Georgia, serif;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background-color: #F0B8CF;
+    color: #2D1B2A;
+  }
+}
+
+/* ─── Utility classes ───────────────────────────── */
+@layer utilities {
+  .font-playfair { font-family: var(--font-playfair), Georgia, serif; }
+  .font-jakarta  { font-family: var(--font-jakarta), system-ui, sans-serif; }
+
+  .text-brand        { color: #E8478A; }
+  .text-brand-light  { color: #B890A8; }
+  .bg-brand          { background-color: #E8478A; }
+  .bg-brand-gradient { background: linear-gradient(135deg, #F9B8D5 0%, #E8478A 100%); }
+  .bg-blush          { background-color: #FFF5F8; }
+  .border-blush      { border-color: #F0DDE8; }
+}
+
+/* ─── Scrollbar ─────────────────────────────────── */
+::-webkit-scrollbar       { width: 8px; }
+::-webkit-scrollbar-track { background: #FDF7F9; }
+::-webkit-scrollbar-thumb { background: #F0B8CF; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #E8478A; }

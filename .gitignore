@@ -1,0 +1,41 @@
+# ── Secrets & local config ──────────────────────────
+.env
+.env.*
+!.env.example
+# bcrypt password hashes for the two accounts
+backend/users.json
+*.pem
+*.key
+
+# ── Python (backend) ────────────────────────────────
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Node / Next.js (frontend) ───────────────────────
+node_modules/
+.next/
+out/
+build/
+coverage/
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ── Logs & temp ─────────────────────────────────────
+*.log
+*.tmp
+
+# ── Editors & OS ────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
