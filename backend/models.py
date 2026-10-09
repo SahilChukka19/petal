@@ -40,3 +40,18 @@ class ResourceCreate(ResourceBase):
 class Resource(ResourceBase):
     id: str
     created_at: datetime
+
+
+class NoteBase(BaseModel):
+    content: str = Field(max_length=5000)
+
+class NoteCreate(NoteBase):
+    pass
+
+class NoteUpdate(NoteBase):
+    pass
+
+class Note(NoteBase):
+    id: str
+    updated_at: datetime
+    created_at: datetime

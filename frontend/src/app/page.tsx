@@ -9,6 +9,7 @@ import { CalendarDayButton } from "@/components/ui/calendar";
 import HangingBanners from "@/components/HangingBanners";
 import LoginForm from "@/components/LoginForm";
 import { ApiError, getMe, logout, getUpdates, saveUpdate, deleteUpdate, getResources, createResource, deleteResource, deleteMedia, uploadMedia, toDateStr, type DailyUpdate, type Resource } from "@/lib/api";
+import NotesSidebar from "@/components/NotesSidebar";
 
 const Calendar = dynamic(
   () => import("@/components/ui/calendar").then((m) => m.Calendar),
@@ -481,10 +482,10 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Calendar Card (wrapper anchors the hanging banners to the calendar's top edge) */}
+            {/* Main Content Layout: Calendar and Notes Sidebar */}
             <div className="relative">
-            <HangingBanners />
-            <div className="rounded-3xl overflow-hidden" style={{ background: "#FFFFFF", border: "1px solid #F0DDE8", boxShadow: "0 4px 24px rgba(232,71,138,0.08)" }}>
+              <HangingBanners />
+              <div className="rounded-3xl overflow-hidden w-full relative z-10" style={{ background: "#FFFFFF", border: "1px solid #F0DDE8", boxShadow: "0 4px 24px rgba(232,71,138,0.08)" }}>
 
               {/* Calendar header bar */}
               <div className="px-8 py-5" style={{ borderBottom: "1px solid #F8EDF3" }}>
@@ -493,8 +494,9 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Calendar */}
-              <div className="px-6 py-6">
+              {/* Calendar & Notes */}
+              <div className="flex flex-col lg:flex-row px-6 py-6">
+                <div className="flex-1 pr-6 lg:border-r border-[#F0DDE8]">
                 <style>{`
                   .rdp-month { width: 100% !important; }
                   .rdp-months { width: 100% !important; }
@@ -530,6 +532,12 @@ export default function Home() {
                   className="w-full"
                 />
                 </EntriesContext.Provider>
+                </div>
+                
+                {/* Notes Sidebar Column */}
+                <div className="hidden lg:flex w-full lg:w-[300px] shrink-0 flex-col pl-6 max-h-[500px]">
+                  <NotesSidebar />
+                </div>
               </div>
 
               {/* Legend */}

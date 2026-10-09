@@ -86,3 +86,15 @@ export const login = (username: string, password: string) =>
 export const logout = () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" });
 
 export const getMe = () => request<{ username: string }>("/api/auth/me");
+
+export interface Note {
+  id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getNotes = () => request<Note[]>("/api/notes");
+export const createNote = (content: string) => request<Note>("/api/notes", json({ content }));
+export const updateNote = (id: string, content: string) => request<Note>(`/api/notes/${id}`, { method: "PUT", ...json({ content }) });
+export const deleteNote = (id: string) => request<{ ok: boolean }>(`/api/notes/${id}`, { method: "DELETE" });

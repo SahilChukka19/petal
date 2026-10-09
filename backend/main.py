@@ -210,3 +210,39 @@ async def upload_media(
     except Exception:
         raise HTTPException(status_code=500, detail="Upload failed")
     return {"url": supabase.storage.from_(MEDIA_BUCKET).get_public_url(path)}
+
+
+# --- Notes ---
+
+@app.get("/api/notes")
+def get_notes(user: str = Depends(current_user), supabase: Client = Depends(get_supabase)):
+    response = supabase.table("notes").select("*").eq("username", user).order("updated_at", desc=True).execute()
+    return response.data
+
+
+@app.post("/api/notes")
+def create_note(note: NoteCreate, user: str = Depends(current_user), supabase: Client = Depends(get_supabase)):
+    data = note.model_dump()
+    data["username"] = user
+    response = supabase.table("notes").insert(data).execute()
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Could not create note")
+    return response.data[0]
+
+
+@app.put("/api/notes/{note_id}")
+def update_note(note_id: str, note: NoteUpdate, user: str = Depends(current_user), supabase: Client = Depends(get_supabase)):
+    data = note.model_dump()
+    data["updated_at"] = datetime.utcnow().isoformat()
+    response = supabase.table("notes").update(data).eq("username", user).eq("id", note_id).execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return response.data[0]
+
+
+@app.delete("/api/notes/{note_id}")
+def delete_note(note_id: str, user: str = Depends(current_user), supabase: Client = Depends(get_supabase)):
+    response = supabase.table("notes").delete().eq("username", user).eq("id", note_id).execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"ok": True}
