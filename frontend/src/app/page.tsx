@@ -30,13 +30,37 @@ type Tab = "tracklist" | "resources";
 // Saved entries by YYYY-MM-DD, shared with the calendar's day cells.
 const EntriesContext = createContext<Record<string, DailyUpdate>>({});
 
+const NOTE_GRADS = [
+  "linear-gradient(145deg, #FFF4F9 0%, #FFD6E7 100%)",
+  "linear-gradient(145deg, #F5F0FF 0%, #E8D5FF 100%)",
+  "linear-gradient(145deg, #FFF8F0 0%, #FFE8CC 100%)",
+  "linear-gradient(145deg, #F0FAFF 0%, #CCF0FF 100%)",
+  "linear-gradient(145deg, #F5FFF0 0%, #CCFFDD 100%)",
+];
+const NOTE_BORDERS = ["#F5B5CF", "#C8A0E8", "#FFB870", "#80D0E0", "#80E0A0"];
+const NOTE_SHADOWS = [
+  "rgba(232,71,138,0.18)", "rgba(147,100,200,0.18)", "rgba(255,140,60,0.18)",
+  "rgba(60,180,200,0.18)", "rgba(60,180,100,0.18)",
+];
+const NOTE_TEXT_COLORS = ["#7A1F4A", "#4A1A7A", "#7A3A0A", "#0A4A6A", "#0A5A2A"];
+const WASHI_PATTERNS = [
+  "repeating-linear-gradient(135deg, rgba(232,71,138,0.45) 0 4px, rgba(255,255,255,0.55) 4px 8px)",
+  "repeating-linear-gradient(135deg, rgba(147,100,200,0.45) 0 4px, rgba(255,255,255,0.55) 4px 8px)",
+  "repeating-linear-gradient(135deg, rgba(255,160,80,0.5) 0 4px, rgba(255,255,255,0.55) 4px 8px)",
+  "repeating-linear-gradient(135deg, rgba(80,180,200,0.45) 0 4px, rgba(255,255,255,0.55) 4px 8px)",
+  "repeating-linear-gradient(135deg, rgba(60,180,100,0.45) 0 4px, rgba(255,255,255,0.55) 4px 8px)",
+];
+const TILTS = ["-rotate-2", "rotate-1", "-rotate-1", "rotate-2", "rotate-0", "-rotate-3", "rotate-3"];
+
 /** Day cell: the normal date button plus a sticky note showing what was learned that day. */
 function DayWithNote(props: React.ComponentProps<typeof CalendarDayButton>) {
   const entries = useContext(EntriesContext);
   const key = toDateStr(props.day.date);
   const entry = entries[key];
   const text = entry?.what_i_learned.trim();
-  const tilt = props.day.date.getDate() % 2 === 0 ? "-rotate-2" : "rotate-1";
+  const d = props.day.date.getDate();
+  const ci = d % 5;
+  const tilt = TILTS[d % TILTS.length];
 
   return (
     <>
@@ -51,20 +75,20 @@ function DayWithNote(props: React.ComponentProps<typeof CalendarDayButton>) {
           <div
             className={`relative h-full overflow-hidden rounded-xl px-2 pt-2.5 pb-1 transition-all duration-200 hover:rotate-0 hover:scale-105 hover:shadow-lg ${tilt}`}
             style={{
-              background: "linear-gradient(135deg, #FFF4F9 0%, #FFD6E7 100%)",
-              border: "1px solid #F5B5CF",
-              boxShadow: "0 3px 10px rgba(232,71,138,0.18)",
+              background: NOTE_GRADS[ci],
+              border: `1px solid ${NOTE_BORDERS[ci]}`,
+              boxShadow: `0 3px 10px ${NOTE_SHADOWS[ci]}`,
             }}
           >
             {/* washi tape */}
             <span
               aria-hidden
               className="absolute -top-0.5 left-1/2 h-2 w-8 -translate-x-1/2 rotate-2 rounded-sm"
-              style={{ background: "repeating-linear-gradient(135deg, rgba(232,71,138,0.45) 0 4px, rgba(255,255,255,0.55) 4px 8px)" }}
+              style={{ background: WASHI_PATTERNS[ci] }}
             />
             <p
               className="font-playfair italic font-semibold leading-snug line-clamp-3"
-              style={{ fontSize: "0.68rem", color: "#7A1F4A", wordBreak: "break-word" }}
+              style={{ fontSize: "0.68rem", color: NOTE_TEXT_COLORS[ci], wordBreak: "break-word" }}
             >
               {text}
             </p>
@@ -193,6 +217,8 @@ export default function Home() {
     if (!selectedDay) return;
     const typed = resourceInput.trim();
     const used = typed && !selectedPlatforms.some((x) => x.toLowerCase() === typed.toLowerCase()) ? [...selectedPlatforms, typed] : selectedPlatforms;
+    if (!learnedText.trim()) { setError("Please fill in what you learned today. ✏️"); return; }
+    if (used.length === 0) { setError("Please add at least one resource used. 🔗"); return; }
     setSaving(true);
     setError(null);
     try {
@@ -216,6 +242,7 @@ export default function Home() {
         !resources.some((r) => sameResource(r, it)) &&
         all.findIndex((o) => (o.url || o.title).toLowerCase() === (it.url || it.title).toLowerCase()) === i
       );
+
       if (fresh.length) {
         const created = await Promise.all(fresh.map((it) => createResource(it)));
         setResources((prev) => [...created.reverse(), ...prev]);
@@ -244,8 +271,37 @@ export default function Home() {
     }
   };
 
+  const allResources = useMemo(() => {
+    const combined = [...resources];
+    updates.forEach(u => {
+      if (u.video_url && !combined.some(r => r.url === u.video_url)) {
+        combined.push({
+          id: `vid-${u.id}`,
+          title: `Video Summary - ${u.date}`,
+          url: u.video_url,
+          category: "Video",
+          emoji: "🎬",
+          notes: null,
+          created_at: u.created_at,
+        });
+      }
+      if (u.voice_note_url && !combined.some(r => r.url === u.voice_note_url)) {
+        combined.push({
+          id: `aud-${u.id}`,
+          title: `Voice Note - ${u.date}`,
+          url: u.voice_note_url,
+          category: "Podcast",
+          emoji: "🎙️",
+          notes: null,
+          created_at: u.created_at,
+        });
+      }
+    });
+    return combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [resources, updates]);
+
   const q = searchQuery.trim().toLowerCase();
-  const filteredResources = resources.filter((r) =>
+  const filteredResources = allResources.filter((r) =>
     (activeCategory === "All" || r.category === activeCategory) &&
     (!q || [r.title, r.url, r.category ?? ""].some((f) => f.toLowerCase().includes(q)))
   );
@@ -495,44 +551,93 @@ export default function Home() {
               <span className="ml-auto text-xs" style={{ color: "#B890A8" }}>{filteredResources.length} resources</span>
             </div>
 
-            {/* Resource Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredResources.map((res) => (
-                <a
-                  key={res.id}
-                  href={res.url ? (/^https?:\/\//.test(res.url) ? res.url : `https://${res.url}`) : undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group block rounded-2xl p-5 transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
-                  style={{
-                    background: "#FFFFFF",
-                    border: "1px solid #F0DDE8",
-                    boxShadow: "0 2px 12px rgba(232,71,138,0.06)",
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 8px 24px rgba(232,71,138,0.14)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#F0B8CF"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 2px 12px rgba(232,71,138,0.06)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#F0DDE8"; }}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{ background: "#FFF5F8" }}>
-                      {res.emoji ?? "📚"}
+            {/* Resource Sticky Notes Grid */}
+            <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 space-y-5">
+              {filteredResources.map((res, i) => {
+                const tilts = ["-rotate-2", "rotate-1", "-rotate-1", "rotate-2", "rotate-0", "-rotate-3", "rotate-3"];
+                const tilt = tilts[i % tilts.length];
+                const washiColors = [
+                  "repeating-linear-gradient(135deg, rgba(232,71,138,0.45) 0 4px, rgba(255,255,255,0.55) 4px 8px)",
+                  "repeating-linear-gradient(135deg, rgba(147,100,200,0.45) 0 4px, rgba(255,255,255,0.55) 4px 8px)",
+                  "repeating-linear-gradient(135deg, rgba(255,160,80,0.5) 0 4px, rgba(255,255,255,0.55) 4px 8px)",
+                  "repeating-linear-gradient(135deg, rgba(80,180,200,0.45) 0 4px, rgba(255,255,255,0.55) 4px 8px)",
+                ];
+                const noteGrads = [
+                  "linear-gradient(145deg, #FFF4F9 0%, #FFD6E7 100%)",
+                  "linear-gradient(145deg, #F5F0FF 0%, #E8D5FF 100%)",
+                  "linear-gradient(145deg, #FFF8F0 0%, #FFE8CC 100%)",
+                  "linear-gradient(145deg, #F0FAFF 0%, #CCF0FF 100%)",
+                  "linear-gradient(145deg, #F5FFF0 0%, #CCFFDD 100%)",
+                ];
+                const noteBorders = ["#F5B5CF", "#C8A0E8", "#FFB870", "#80D0E0", "#80E0A0"];
+                const shadowColors = [
+                  "rgba(232,71,138,0.18)", "rgba(147,100,200,0.18)", "rgba(255,140,60,0.18)",
+                  "rgba(60,180,200,0.18)", "rgba(60,180,100,0.18)"
+                ];
+                const ci = i % 5;
+                const href = res.url ? (/^https?:\/\//.test(res.url) ? res.url : `https://${res.url}`) : undefined;
+                return (
+                  <a
+                    key={res.id}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`break-inside-avoid block relative rounded-2xl px-4 pt-5 pb-4 transition-all duration-200 hover:rotate-0 hover:scale-105 hover:shadow-xl ${tilt}`}
+                    style={{
+                      background: noteGrads[ci],
+                      border: `1px solid ${noteBorders[ci]}`,
+                      boxShadow: `0 4px 16px ${shadowColors[ci]}, 0 1px 4px rgba(0,0,0,0.06)`,
+                      textDecoration: "none",
+                      cursor: href ? "pointer" : "default",
+                    }}
+                  >
+                    {/* Washi tape */}
+                    <span
+                      aria-hidden
+                      className="absolute -top-1 left-1/2 h-2.5 w-10 -translate-x-1/2 rotate-2 rounded-sm"
+                      style={{ background: washiColors[i % washiColors.length] }}
+                    />
+
+                    {/* Emoji */}
+                    <div className="text-3xl mb-3 mt-1">{res.emoji ?? "📚"}</div>
+
+                    {/* Title */}
+                    <p
+                      className="font-playfair italic font-bold leading-snug mb-2"
+                      style={{ fontSize: "0.95rem", color: "#3D1A32", wordBreak: "break-word" }}
+                    >
+                      {res.title}
+                    </p>
+
+                    {/* URL */}
+                    {res.url && (
+                      <p
+                        className="text-xs mb-3 truncate"
+                        style={{ color: "#A06080", fontFamily: "var(--font-jakarta)" }}
+                      >
+                        {res.url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 45)}
+                      </p>
+                    )}
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between mt-auto pt-1" style={{ borderTop: `1px dashed ${noteBorders[ci]}` }}>
+                      <span
+                        className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                        style={{ background: "rgba(255,255,255,0.7)", color: "#7A3A5A", fontSize: "0.68rem" }}
+                      >
+                        {res.category ?? "Other"}
+                      </span>
+                      <span className="text-xs" style={{ color: "#C090A8", fontSize: "0.65rem", fontFamily: "var(--font-jakarta)" }}>
+                        {timeAgo(res.created_at)}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate" style={{ color: "#2D1B2A" }}>{res.title}</p>
-                      <p className="text-xs mt-0.5 truncate" style={{ color: "#B890A8" }}>{res.url || "No link"}</p>
-                      <div className="flex items-center gap-2 mt-2.5">
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: "#FFF5F8", color: "#E8478A", border: "1px solid #F0DDE8" }}>
-                          {res.category ?? "Other"}
-                        </span>
-                        <span className="text-xs" style={{ color: "#D4BAC9" }}>Added {timeAgo(res.created_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </a>
-              ))}
+                  </a>
+                );
+              })}
             </div>
 
             {/* Empty state hint */}
-            {resources.length === 0 && <div className="rounded-2xl p-8 flex flex-col items-center gap-3 text-center" style={{ background: "#FFF5F8", border: "1px dashed #F0DDE8" }}>
+            {allResources.length === 0 && <div className="rounded-2xl p-8 flex flex-col items-center gap-3 text-center" style={{ background: "#FFF5F8", border: "1px dashed #F0DDE8" }}>
               <span className="text-3xl">📌</span>
               <p className="text-sm font-semibold" style={{ color: "#7A4E6A" }}>Save resources as you learn</p>
               <p className="text-xs" style={{ color: "#B890A8" }}>Add links, books, videos, podcasts — anything you want to revisit.</p>
@@ -566,7 +671,7 @@ export default function Home() {
 
             {/* What I learned */}
             <div className="flex flex-col gap-2">
-              <Label className="text-sm font-semibold" style={{ color: "#2D1B2A" }}>✏️ What I Learned</Label>
+              <Label className="text-sm font-semibold" style={{ color: "#2D1B2A" }}>✏️ What I Learned <span style={{ color: "#E8478A" }}>*</span></Label>
               <Textarea
                 value={learnedText}
                 onChange={(e) => setLearnedText(e.target.value)}
@@ -583,7 +688,7 @@ export default function Home() {
             {/* Resources used */}
             <div className="flex flex-col gap-2.5">
               <div>
-                <Label className="text-sm font-semibold" style={{ color: "#2D1B2A" }}>🔗 Resources Used</Label>
+                <Label className="text-sm font-semibold" style={{ color: "#2D1B2A" }}>🔗 Resources Used <span style={{ color: "#E8478A" }}>*</span></Label>
                 <p className="text-xs mt-0.5" style={{ color: "#B890A8" }}>Type a link or a name and press Enter. New ones are also saved to your Resource Library.</p>
               </div>
               <div className="flex gap-2">
@@ -640,7 +745,11 @@ export default function Home() {
                 <Label className="text-sm font-semibold" style={{ color: "#2D1B2A" }}>🎬 Short Video Summary</Label>
                 <p className="text-xs mt-0.5" style={{ color: "#B890A8" }}>Record a quick explanation — max 2 minutes</p>
               </div>
-              <VideoRecorder onRecorded={setVideoBlob} />
+              <VideoRecorder 
+                onRecorded={setVideoBlob} 
+                onClear={() => setExistingMedia((prev) => ({ ...prev, video: null }))}
+                existingUrl={existingMedia.video} 
+              />
             </div>
 
             {/* Voice recorder */}
@@ -649,7 +758,11 @@ export default function Home() {
                 <Label className="text-sm font-semibold" style={{ color: "#2D1B2A" }}>🎙️ Voice Note</Label>
                 <p className="text-xs mt-0.5" style={{ color: "#B890A8" }}>Speak your mind — max 2 minutes</p>
               </div>
-              <VoiceRecorder onRecorded={setAudioBlob} />
+              <VoiceRecorder 
+                onRecorded={setAudioBlob} 
+                onClear={() => setExistingMedia((prev) => ({ ...prev, audio: null }))}
+                existingUrl={existingMedia.audio} 
+              />
             </div>
 
           </div>

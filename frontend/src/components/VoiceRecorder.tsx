@@ -4,14 +4,16 @@ import { useRef, useState, useEffect } from "react";
 
 interface VoiceRecorderProps {
   onRecorded: (blob: Blob) => void;
+  onClear?: () => void;
+  existingUrl?: string | null;
 }
 
 const MAX_SECONDS = 120;
 
-export default function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
-  const [phase, setPhase] = useState<"idle" | "recording" | "done">("idle");
+export default function VoiceRecorder({ onRecorded, onClear, existingUrl }: VoiceRecorderProps) {
+  const [phase, setPhase] = useState<"idle" | "recording" | "done">(existingUrl ? "done" : "idle");
   const [elapsed, setElapsed] = useState(0);
-  const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(existingUrl ?? null);
   const [error, setError] = useState<string | null>(null);
   const [bars, setBars] = useState<number[]>(Array(20).fill(4));
 
@@ -22,6 +24,17 @@ export default function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
   const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  useEffect(() => {
+    stopStream();
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (animRef.current) clearInterval(animRef.current);
+    if (mediaRecorderRef.current?.state !== "inactive") mediaRecorderRef.current?.stop();
+    setPhase(existingUrl ? "done" : "idle");
+    setRecordedUrl(existingUrl ?? null);
+    setElapsed(0);
+    setBars(Array(20).fill(4));
+  }, [existingUrl]);
 
   const startRecording = async () => {
     try {
@@ -100,6 +113,7 @@ export default function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
     setElapsed(0);
     setBars(Array(20).fill(4));
     setPhase("idle");
+    onClear?.();
   };
 
   useEffect(() => () => {

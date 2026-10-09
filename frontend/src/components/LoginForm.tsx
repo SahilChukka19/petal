@@ -11,10 +11,22 @@ export default function LoginForm({ onLogin }: { onLogin: (username: string) => 
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanUser = username.trim();
+    const cleanPass = password.trim();
+
+    if (!cleanUser) {
+      setError("Please enter your username.");
+      return;
+    }
+    if (!cleanPass) {
+      setError("Please enter your password.");
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
-      const res = await login(username, password);
+      const res = await login(cleanUser, cleanPass);
       onLogin(res.username);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in");
@@ -39,7 +51,7 @@ export default function LoginForm({ onLogin }: { onLogin: (username: string) => 
         </div>
 
         <label className="flex flex-col gap-1.5 text-sm font-semibold" style={{ color: "#2D1B2A" }}>
-          Username
+          <span>Username <span style={{ color: "#E8478A" }}>*</span></span>
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -50,7 +62,7 @@ export default function LoginForm({ onLogin }: { onLogin: (username: string) => 
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-semibold" style={{ color: "#2D1B2A" }}>
-          Password
+          <span>Password <span style={{ color: "#E8478A" }}>*</span></span>
           <input
             type="password"
             value={password}

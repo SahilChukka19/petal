@@ -4,14 +4,16 @@ import { useRef, useState, useEffect } from "react";
 
 interface VideoRecorderProps {
   onRecorded: (blob: Blob) => void;
+  onClear?: () => void;
+  existingUrl?: string | null;
 }
 
 const MAX_SECONDS = 120;
 
-export default function VideoRecorder({ onRecorded }: VideoRecorderProps) {
-  const [phase, setPhase] = useState<"idle" | "preview" | "recording" | "done">("idle");
+export default function VideoRecorder({ onRecorded, onClear, existingUrl }: VideoRecorderProps) {
+  const [phase, setPhase] = useState<"idle" | "preview" | "recording" | "done">(existingUrl ? "done" : "idle");
   const [elapsed, setElapsed] = useState(0);
-  const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(existingUrl ?? null);
   const [error, setError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -20,14 +22,28 @@ export default function VideoRecorder({ onRecorded }: VideoRecorderProps) {
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  useEffect(() => {
+    stopStream();
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (mediaRecorderRef.current?.state !== "inactive") mediaRecorderRef.current?.stop();
+    setPhase(existingUrl ? "done" : "idle");
+    setRecordedUrl(existingUrl ?? null);
+    setElapsed(0);
+  }, [existingUrl]);
+
+  useEffect(() => {
+    if ((phase === "preview" || phase === "recording") && videoRef.current && streamRef.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.muted = true;
+      }
+    }
+  }, [phase]);
+
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.muted = true;
-      }
       setPhase("preview");
       setError(null);
     } catch {
@@ -83,6 +99,7 @@ export default function VideoRecorder({ onRecorded }: VideoRecorderProps) {
     setRecordedUrl(null);
     setElapsed(0);
     setPhase("idle");
+    onClear?.();
   };
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); stopStream(); }, []);
