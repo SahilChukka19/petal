@@ -96,5 +96,5 @@ export interface Note {
 
 export const getNotes = () => request<Note[]>("/api/notes");
 export const createNote = (content: string) => request<Note>("/api/notes", json({ content }));
-export const updateNote = (id: string, content: string) => request<Note>(`/api/notes/${id}`, { method: "PUT", ...json({ content }) });
+export const updateNote = (id: string, content: string) => request<Note>(`/api/notes/${id}`, { ...json({ content }), method: "PUT" });
 export const deleteNote = (id: string) => request<{ ok: boolean }>(`/api/notes/${id}`, { method: "DELETE" });

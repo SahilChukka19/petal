@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 from dotenv import load_dotenv
 import logging
@@ -18,7 +18,7 @@ from supabase import create_client, Client
 load_dotenv()
 
 from auth import COOKIE_NAME, SESSION_DAYS, authenticate, create_session_token, current_user  # noqa: E402
-from models import DailyUpdateCreate, LoginRequest, ResourceCreate  # noqa: E402
+from models import DailyUpdateCreate, LoginRequest, ResourceCreate, NoteCreate, NoteUpdate  # noqa: E402
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
 

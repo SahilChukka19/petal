@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { CalendarDayButton } from "@/components/ui/calendar";
-import HangingBanners from "@/components/HangingBanners";
 import LoginForm from "@/components/LoginForm";
 import { ApiError, getMe, logout, getUpdates, saveUpdate, deleteUpdate, getResources, createResource, deleteResource, deleteMedia, uploadMedia, toDateStr, type DailyUpdate, type Resource } from "@/lib/api";
 import NotesSidebar from "@/components/NotesSidebar";
@@ -385,7 +384,7 @@ export default function Home() {
 
       {/* ── Top Navigation ─────────────────────────── */}
       <header style={{ borderBottom: "1px solid #F0DDE8", background: "rgba(255,255,255,0.75)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 50 }}>
-        <div className="max-w-5xl mx-auto px-8 py-4 flex items-center justify-between">
+        <div className="max-w-[1300px] mx-auto px-8 py-4 flex items-center justify-between">
 
           {/* Brand */}
           <div className="flex items-center gap-3">
@@ -430,7 +429,7 @@ export default function Home() {
       </header>
 
       {/* ── Main ───────────────────────────────────── */}
-      <main className="max-w-5xl mx-auto px-8 py-10">
+      <main className="max-w-[1300px] mx-auto px-8 py-10">
 
         {notice && (
           <div className="mb-6 rounded-2xl px-5 py-3 text-sm font-semibold" style={{ background: "#F0FBF4", border: "1px solid #BFE5CC", color: "#1E7A43" }}>
@@ -484,7 +483,6 @@ export default function Home() {
 
             {/* Main Content Layout: Calendar and Notes Sidebar */}
             <div className="relative">
-              <HangingBanners />
               <div className="rounded-3xl overflow-hidden w-full relative z-10" style={{ background: "#FFFFFF", border: "1px solid #F0DDE8", boxShadow: "0 4px 24px rgba(232,71,138,0.08)" }}>
 
               {/* Calendar header bar */}
@@ -547,7 +545,7 @@ export default function Home() {
                   <span className="text-xs font-medium" style={{ color: "#7A4E6A" }}>Selected / Logged</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg border-2 flex items-center justify-center text-xs font-bold" style={{ borderColor: "#F0B8CF", color: "#E8478A" }}>7</div>
+                  <div className="w-7 h-7 rounded-lg border-2 flex items-center justify-center text-xs font-bold" style={{ borderColor: "#F0B8CF", color: "#E8478A" }}>{new Date().getDate()}</div>
                   <span className="text-xs font-medium" style={{ color: "#7A4E6A" }}>Today</span>
                 </div>
               </div>
