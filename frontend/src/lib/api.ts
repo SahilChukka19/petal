@@ -57,6 +57,10 @@ export const saveUpdate = (u: {
   voice_note_url?: string | null;
 }) => request<DailyUpdate>("/api/updates", json(u));
 
+export const deleteUpdate = (date: string) => request<{ ok: boolean }>(`/api/updates/${date}`, { method: "DELETE" });
+
+export const deleteMedia = (updateId: string, kind: "video" | "audio") => request<{ ok: boolean }>(`/api/updates/${updateId}/media/${kind}`, { method: "DELETE" });
+
 export const getResources = () => request<Resource[]>("/api/resources");
 
 export const createResource = (r: {
@@ -65,6 +69,8 @@ export const createResource = (r: {
   category?: string;
   emoji?: string;
 }) => request<Resource>("/api/resources", json(r));
+
+export const deleteResource = (id: string) => request<{ ok: boolean }>(`/api/resources/${id}`, { method: "DELETE" });
 
 export async function uploadMedia(kind: "video" | "audio", blob: Blob): Promise<string> {
   const form = new FormData();

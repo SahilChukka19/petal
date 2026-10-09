@@ -126,6 +126,31 @@ def get_update_by_date(date_str: date, user: str = Depends(current_user), supaba
     return response.data[0]
 
 
+@app.delete("/api/updates/{date_str}")
+def delete_update_by_date(date_str: date, user: str = Depends(current_user), supabase: Client = Depends(get_supabase)):
+    response = (
+        supabase.table("daily_updates").delete()
+        .eq("username", user).eq("date", date_str.isoformat()).execute()
+    )
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Update not found for this date")
+    return {"ok": True}
+
+
+@app.delete("/api/updates/{update_id}/media/{kind}")
+def delete_update_media(update_id: str, kind: str, user: str = Depends(current_user), supabase: Client = Depends(get_supabase)):
+    if kind not in ["video", "audio"]:
+        raise HTTPException(status_code=400, detail="Invalid kind")
+    col = "video_url" if kind == "video" else "voice_note_url"
+    response = (
+        supabase.table("daily_updates").update({col: None})
+        .eq("username", user).eq("id", update_id).execute()
+    )
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Update not found")
+    return {"ok": True}
+
+
 # --- Resources ---
 
 @app.post("/api/resources")
@@ -143,6 +168,17 @@ def get_resources(user: str = Depends(current_user), supabase: Client = Depends(
         .eq("username", user).order("created_at", desc=True).execute()
     )
     return response.data
+
+
+@app.delete("/api/resources/{resource_id}")
+def delete_resource(resource_id: str, user: str = Depends(current_user), supabase: Client = Depends(get_supabase)):
+    response = (
+        supabase.table("resources").delete()
+        .eq("username", user).eq("id", resource_id).execute()
+    )
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    return {"ok": True}
 
 
 # --- Media upload (Supabase Storage, bucket "media") ---

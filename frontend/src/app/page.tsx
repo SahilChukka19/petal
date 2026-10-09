@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { CalendarDayButton } from "@/components/ui/calendar";
 import HangingBanners from "@/components/HangingBanners";
 import LoginForm from "@/components/LoginForm";
-import { ApiError, getMe, logout, getUpdates, saveUpdate, getResources, createResource, uploadMedia, toDateStr, type DailyUpdate, type Resource } from "@/lib/api";
+import { ApiError, getMe, logout, getUpdates, saveUpdate, deleteUpdate, getResources, createResource, deleteResource, deleteMedia, uploadMedia, toDateStr, type DailyUpdate, type Resource } from "@/lib/api";
 
 const Calendar = dynamic(
   () => import("@/components/ui/calendar").then((m) => m.Calendar),
@@ -138,6 +138,7 @@ export default function Home() {
   const [newResource, setNewResource] = useState({ title: "", url: "", category: "Documentation", emoji: "📚" });
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'update' | 'resource'; id: string } | null>(null);
 
   const [updates, setUpdates] = useState<DailyUpdate[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
@@ -255,6 +256,11 @@ export default function Home() {
     }
   };
 
+  const handleDeleteUpdate = () => {
+    if (!selectedDay) return;
+    setDeleteConfirm({ type: 'update', id: toDateStr(selectedDay) });
+  };
+
   const handleSaveResource = async () => {
     if (!newResource.title.trim() || !newResource.url.trim()) { setError("Title and link are required."); return; }
     setSaving(true);
@@ -268,6 +274,64 @@ export default function Home() {
       handleError(e, "Could not save resource");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteResource = (id: string) => {
+    setDeleteConfirm({ type: 'resource', id });
+  };
+
+  const executeDelete = async () => {
+    if (!deleteConfirm) return;
+    setSaving(true);
+    try {
+      if (deleteConfirm.type === 'update') {
+        const updateToDelete = updates.find((u) => u.date === deleteConfirm.id);
+        await deleteUpdate(deleteConfirm.id);
+
+        if (updateToDelete) {
+          const otherUpdates = updates.filter((u) => u.date !== deleteConfirm.id);
+          const usedElsewhere = new Set(otherUpdates.flatMap((u) => u.resources.map((r) => r.toLowerCase())));
+          const toDeleteResources = updateToDelete.resources.filter((r) => !usedElsewhere.has(r.toLowerCase()));
+
+          const resourcesToDeleteIds: string[] = [];
+          toDeleteResources.forEach((resStr) => {
+            const item = resourceFromItem(resStr);
+            const matchedRes = resources.find((r) => sameResource(r, item));
+            if (matchedRes) {
+              resourcesToDeleteIds.push(matchedRes.id);
+            }
+          });
+
+          if (resourcesToDeleteIds.length > 0) {
+            await Promise.all(resourcesToDeleteIds.map((id) => deleteResource(id)));
+            setResources((prev) => prev.filter((r) => !resourcesToDeleteIds.includes(r.id)));
+          }
+        }
+
+        setUpdates((prev) => prev.filter((u) => u.date !== deleteConfirm.id));
+        setIsDialogOpen(false);
+        flash("Entry deleted ✨");
+      } else {
+        if (deleteConfirm.id.startsWith("vid-")) {
+          const updateId = deleteConfirm.id.replace("vid-", "");
+          await deleteMedia(updateId, "video");
+          setUpdates((prev) => prev.map(u => u.id === updateId ? { ...u, video_url: null } : u));
+        } else if (deleteConfirm.id.startsWith("aud-")) {
+          const updateId = deleteConfirm.id.replace("aud-", "");
+          await deleteMedia(updateId, "audio");
+          setUpdates((prev) => prev.map(u => u.id === updateId ? { ...u, voice_note_url: null } : u));
+        } else {
+          await deleteResource(deleteConfirm.id);
+          setResources((prev) => prev.filter((r) => r.id !== deleteConfirm.id));
+        }
+        flash("Resource deleted ✨");
+      }
+    } catch (e) {
+      handleError(e, "Could not delete");
+    } finally {
+      setSaving(false);
+      setDeleteConfirm(null);
     }
   };
 
@@ -582,7 +646,7 @@ export default function Home() {
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`break-inside-avoid block relative rounded-2xl px-4 pt-5 pb-4 transition-all duration-200 hover:rotate-0 hover:scale-105 hover:shadow-xl ${tilt}`}
+                    className={`group break-inside-avoid block relative rounded-2xl px-4 pt-5 pb-4 transition-all duration-200 hover:rotate-0 hover:scale-105 hover:shadow-xl ${tilt}`}
                     style={{
                       background: noteGrads[ci],
                       border: `1px solid ${noteBorders[ci]}`,
@@ -597,6 +661,19 @@ export default function Home() {
                       className="absolute -top-1 left-1/2 h-2.5 w-10 -translate-x-1/2 rotate-2 rounded-sm"
                       style={{ background: washiColors[i % washiColors.length] }}
                     />
+
+                    {/* Delete button */}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteResource(res.id); }}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: "rgba(255,255,255,0.6)", color: "#B42318" }}
+                      aria-label="Delete resource"
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#F5C2C2"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.6)"; }}
+                    >
+                      ✕
+                    </button>
 
                     {/* Emoji */}
                     <div className="text-3xl mb-3 mt-1">{res.emoji ?? "📚"}</div>
@@ -769,16 +846,29 @@ export default function Home() {
 
           {/* Dialog Footer */}
           <div className="px-7 py-5 flex items-center justify-between shrink-0" style={{ borderTop: "1px solid #F0DDE8", background: "#FDFAFB" }}>
-            <button
-              type="button"
-              onClick={() => setIsDialogOpen(false)}
-              className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-              style={{ color: "#7A4E6A", background: "transparent" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#FFF5F8"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-            >
-              Cancel
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsDialogOpen(false)}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                style={{ color: "#7A4E6A", background: "transparent" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#FFF5F8"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+              >
+                Cancel
+              </button>
+              {selectedDay && updates.some((u) => u.date === toDateStr(selectedDay)) && (
+                <button
+                  type="button"
+                  onClick={handleDeleteUpdate}
+                  disabled={saving}
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:bg-[#F9D0E0] active:scale-95 disabled:opacity-60"
+                  style={{ color: "#B42318", background: "#FFF0F0", border: "1px solid #F5C2C2" }}
+                >
+                  Delete
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleSaveUpdate}
@@ -917,6 +1007,46 @@ export default function Home() {
               style={{ background: "linear-gradient(135deg, #F0B8CF, #E8478A)", boxShadow: "0 4px 14px rgba(232,71,138,0.35)" }}
             >
               {saving ? "Saving…" : "Save Resource ✨"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Confirm Delete Dialog ────────────────────── */}
+      <Dialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
+        <DialogContent
+          className="max-w-sm rounded-3xl border-0 p-0 overflow-hidden flex flex-col"
+          style={{ boxShadow: "0 32px 80px rgba(45,27,42,0.18)" }}
+        >
+          <div className="px-7 pt-7 pb-5 shrink-0" style={{ background: "linear-gradient(135deg, #FFF5F8 0%, #FDF0F5 100%)", borderBottom: "1px solid #F0DDE8" }}>
+            <DialogHeader>
+              <DialogTitle className="font-playfair text-2xl font-bold" style={{ color: "#B42318" }}>
+                Delete {deleteConfirm?.type === 'update' ? 'Entry' : 'Resource'}?
+              </DialogTitle>
+              <DialogDescription className="text-sm mt-1" style={{ color: "#7A4E6A" }}>
+                Are you sure you want to delete this {deleteConfirm?.type === 'update' ? 'entry' : 'resource'}? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="px-7 py-5 flex items-center justify-between shrink-0" style={{ background: "#FDFAFB" }}>
+            <button
+              type="button"
+              onClick={() => setDeleteConfirm(null)}
+              className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+              style={{ color: "#7A4E6A", background: "transparent" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#FFF5F8"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={executeDelete}
+              disabled={saving}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:bg-[#B42318] active:scale-95 disabled:opacity-60"
+              style={{ background: "#E8478A", boxShadow: "0 4px 14px rgba(232,71,138,0.35)" }}
+            >
+              {saving ? "Deleting…" : "Delete"}
             </button>
           </div>
         </DialogContent>
